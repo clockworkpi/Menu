@@ -1,0 +1,231 @@
+
+class game+, control+ {
+
+    private import rt::c, lib::sdl2;
+
+    private alias vector = std::vector;
+
+    struct control {
+        struct callback {
+            update void;
+            draw void;
+            wake void;
+            destructor void;
+        }
+        parent. scene;
+        parent_control. control;
+        controls vector<void>;
+        focus_control. control;
+        popup. control;
+        closing_popup. control;
+        pending_popup. control;
+        x int;
+        y int;
+        width int;
+        height int;
+        enable bool;
+        visible bool;
+        focus bool;
+    }
+
+    func constructor() {
+        memset(this, 0, sizeof(control));
+        this.enable = true;
+        this.visible = true;
+        constructor(this);
+    }
+
+    func destructor() {
+        if this.popup ~= null;
+            this->free_control(this.popup);
+        if this.closing_popup ~= null;
+            this->free_control(this.closing_popup);
+        if this.pending_popup ~= null;
+            this->free_control(this.pending_popup);
+        forvar count size_t = this.controls->count(); count;;
+            this->free_control(.this.controls->at(--count));
+        destructor(this);
+    }
+
+    //
+
+    inline create_control<T>(x int, y int, width int = 0, height int = 0) .T {
+        func = this.parent->create_control<T>(x, y, width, height);
+        func->set_parent_control(this);
+    }
+
+    inline new_control<T>(x int, y int, width int = 0, height int = 0) .T {
+        this.controls->push_back(
+            func = this->create_control<T>(this.x + x, this.y + y, width, height));
+    }
+
+    inline free_control(control. control) {
+        this.parent->free_control(control);
+    }
+
+    // focus
+
+    func set_focus(control. control) {
+        var prev. control = this.focus_control;
+        if prev ~= null;
+            prev.focus = false;
+        this.focus_control = control, control.focus = true;
+    }
+
+    inline get_focus() .control {
+        return this.focus_control;
+    }
+
+    // popup
+
+    func close_popup() {
+        if this.popup ~= null {
+            this.closing_popup = this.popup;
+            this.popup = null;
+            // xxx
+            if this.callback.wake ~= null {
+                proto fn(this void);
+                fn[this.callback.wake](this);
+            }
+        }
+    }
+
+    func close_parent_popup() {
+        if this.parent_control == null {
+            this.parent->close_popup();
+        else
+            this.parent_control->close_popup();
+        }
+    }
+
+    func set_popup(control. control) {
+        if this.popup == null and this.closing_popup == null {
+            this.popup = control;
+        else
+            if this.pending_popup ~= null;
+                this->free_control(this.pending_popup);
+            this.pending_popup = control;
+        }
+    }
+
+    func has_popup() bool {
+        if  this.popup ~= null or
+            this.closing_popup ~= null or
+            this.pending_popup ~= null {
+            return true;
+        }
+        return false;
+    }
+
+    //
+
+    func update(render void) {
+        proto fn(this void, render void);
+        if this.closing_popup ~= null;
+            this->free_control(this.closing_popup), this.closing_popup = null;
+        if this.pending_popup ~= null {
+            if this.popup ~= null;
+                this->free_control(this.popup);
+            this.popup = this.pending_popup;
+            this.pending_popup = null;
+        }
+        // xxx
+        if this.popup == null {
+            forvar count size_t = this.controls->count(); count; {
+                var control. control = .this.controls->at(--count);
+                if control.callback.update ~= null;
+                    fn[control.callback.update](control, render);
+            }
+        else
+            var popup. control = this.popup;
+            if popup.callback.update ~= null;
+                fn[popup.callback.update](popup, render);
+        }
+    }
+
+    func draw(render void) {
+        proto fn(this void, render void);
+        forvar count size_t = this.controls->count(); count; {
+            var control. control = .this.controls->at(--count);
+            if control.callback.draw ~= null;
+                fn[control.callback.draw](control, render);
+        }
+        if this.popup ~= null {
+            var popup. control = this.popup;
+            if popup.callback.draw ~= null;
+                fn[popup.callback.draw](popup, render);
+        }
+    }
+
+    func wake() {
+        proto fn(this void);
+        forvar count size_t = this.controls->count(); count; {
+            var control. control = .this.controls->at(--count);
+            if control.callback.wake ~= null;
+                fn[control.callback.wake](control);
+        }
+        if this.popup ~= null {
+            var popup. control = this.popup;
+            if popup.callback.wake ~= null;
+                fn[popup.callback.wake](popup);
+        }
+    }
+
+    //
+
+    inline set_parent(scene. scene) {
+        this.parent = scene;
+    }
+
+    inline get_parent() .scene {
+        return this.parent;
+    }
+
+    inline get_parent_t<T>() .T {
+        return this.parent;
+    }
+
+    inline set_parent_control(control. control) {
+        this.parent_control = control;
+    }
+
+    inline get_parent_control() .control {
+        return this.parent_control;
+    }
+
+    inline get_parent_control_t<T>() .T {
+        return this.parent_control;
+    }
+
+    inline get_window() .window {
+        return this.parent->get_window();
+    }
+
+    //
+
+    inline set_x(x int) { this.x = x; }
+    inline set_y(y int) { this.y = y; }
+    inline set_pos(x int, y int) { this.x = x, this.y = y; }
+    inline set_width(width int) { this.width = width; }
+    inline set_height(height int) { this.height = height; }
+    inline set_size(width int, height int) {
+        this.width = width,
+        this.height = height;
+    }
+
+    inline get_x() int { return this.x; }
+    inline get_y() int { return this.y; }
+    inline get_width() int { return this.width; }
+    inline get_height() int { return this.height; }
+    inline get_right() int { return this.x + this.width; }
+    inline get_bottom() int { return this.y + this.height; }
+    inline get_rect() SDL_Rect {
+        func.x = this.x,
+        func.y = this.y,
+        func.w = this.width,
+        func.h = this.height;
+    }
+    
+    inline has_focus() bool { return this.focus; }
+
+}

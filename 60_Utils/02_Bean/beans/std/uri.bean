@@ -1,0 +1,95 @@
+
+module std+, uri {
+
+    private import rt::c;
+
+    private var
+        rfc3986_table(256) char = 0,
+        html5_table(256) char = 0;
+
+    func urlencode_init() {
+        forvar i int = 0; i < 256; i++ {
+            if isalnum(i) or i == '~' or i == '-' or i == '.' or i == '_' {
+                rfc3986_table[i] = i;
+            else
+                rfc3986_table[i] = '\0';
+            }
+            if isalnum(i) or i == '*' or i == '-' or i == '.' or i == '_' {
+                html5_table[i] = i;
+            else
+                if i == ' ' {
+                    html5_table[i] = '+';
+                else
+                    html5_table[i] = '\0';
+                }
+            }
+        }
+    }
+
+    private func urlencode(table. char, str. char, upper bool = false) .char {
+        static lower_charset() char = "0123456789abcdef";
+        static upper_charset() char = "0123456789ABCDEF";
+        var charset. char;
+        if upper {
+            charset = &upper_charset;
+        else
+            charset = &lower_charset;
+        }
+        var len size_t = strlen(str);
+        var enc. char = (func = malloc((len * 3) + 1));
+        forvar i size_t = 0; i < len; i++ {
+            var b byte = str[i];
+            var c char = table[b];
+            if c {
+                .enc++ = c;
+            else
+                .enc++ = '%';
+                .enc++ = charset[b >> 4];
+                .enc++ = charset[b & 15];
+            }
+        }
+        .enc = '\0';
+    }
+
+    inline urlencode_rfc3986(str. char, upper bool = false) .char {
+        return urlencode(&rfc3986_table, str, upper);
+    }
+
+    inline urlencode_html5(str. char, upper bool = false) .char {
+        return urlencode(&html5_table, str, upper);
+    }
+
+    func urldecode(str. char) .char {
+        var len size_t = strlen(str);
+        var dec. char = (func = malloc(len + 1));
+        forvar i size_t = 0; i < len; i++ {
+            var c char = str[i];
+            if c == '%' {
+                if i + 2 < len {
+                    lambda from_hex(c char) char [
+                        if islower(c) {
+                            return c - 'a' + 10;
+                        elseif isupper(c);
+                            return c - 'A' + 10;
+                        elseif isdigit(c);
+                            return c - '0';
+                        }
+                        return 0;
+                    ];
+                    .dec++ =
+                        from_hex(str[i + 1]) << 4 |
+                        from_hex(str[i + 2]);
+                    i += 2;
+                else
+                    break;
+                }
+            elseif c == '+';
+                .dec++ = ' ';
+            else
+                .dec++ = c;
+            }
+        }
+        .dec = '\0';
+    }
+
+}

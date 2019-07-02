@@ -1,0 +1,43 @@
+
+/*
+    slow
+*/
+func find_pid_by_cmdline(cmdline. char) int {
+    import rt::c;
+    alias   string = std::string,
+            strings = std::strings;
+    var dir void = opendir("/proc");
+    defer closedir(dir);
+    using ent. struct_dirent {
+        while (ent = readdir(dir)) ~= null {
+            if ent.d_type == DT_DIR {
+                if  ent.d_name[0] == '.' and !ent.d_name[1] or
+                    ent.d_name[1] == '.' and !ent.d_name[2] {
+                    continue;
+                }
+                if isnumeric(&ent.d_name) {
+                    lambda pread(cmd. char, lines. strings) bool [
+                        var stream void = popen(cmd, "r");
+                        if stream == null;
+                            return false;
+                        defer fclose(stream);
+                        var line(0x200) char;
+                        while fgets(&line, 0x200, stream) ~= null;
+                            lines->add(&line);
+                        return true;
+                    ];
+                    static cmd string;
+                    static lines strings;
+                    lines->clear();
+                    if pread(cmd->format("sudo cat /proc/%s/cmdline", &ent.d_name), &lines) {
+                        if !lines->empty() {
+                            if !strcmp(lines->first_item(), cmdline);
+                                return atoi(&ent.d_name);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return -1;
+}

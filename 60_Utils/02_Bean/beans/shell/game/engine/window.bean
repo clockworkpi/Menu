@@ -1,0 +1,312 @@
+
+class game+, window {
+
+    private import rt::c, lib::sdl2, lib::sdl2_image;
+
+    private alias
+        string = std::string,
+        vector_ptr = std::vector_ptr;
+
+    struct window {
+        wnd void;
+        render void;
+        scenes vector_ptr<scene>;
+        garbage vector_ptr<scene>;
+        current_scene. scene;
+        pending_scene. scene;
+        turbo uint32;
+        quit bool;
+    }
+
+    func constructor() {
+        memset(this, 0, sizeof(window));
+        constructor(this);
+    }
+
+    func destructor() {
+        if this.current_scene ~= null;
+            this->safe_free_scene(this.current_scene);
+        if this.pending_scene ~= null;
+            this->safe_free_scene(this.pending_scene);
+        using count size_t = this.scenes->count() {
+            while count {
+                this->free_scene_internal(this.scenes->at(--count));
+            }
+        }
+        this->dump();
+        if this.render ~= null;
+            SDL_DestroyRenderer(this.render);
+        if this.wnd ~= null;
+            SDL_DestroyWindow(this.wnd);
+        destructor(this);
+    }
+
+    func create_wnd(title. char, w int, h int,
+        x int = SDL_WINDOWPOS_UNDEFINED,
+        y int = SDL_WINDOWPOS_UNDEFINED) bool {
+        if (this.wnd = SDL_CreateWindow(title, x, y, w, h,
+            SDL_WINDOW_FULLSCREEN |
+            SDL_WINDOW_OPENGL |
+            SDL_WINDOW_SHOWN)) == null;
+            return false;
+        if (this.render = SDL_CreateRenderer(this.wnd, -1,
+            SDL_RENDERER_ACCELERATED |
+            SDL_RENDERER_TARGETTEXTURE)) == null {
+            SDL_DestroyWindow(this.wnd), this.wnd = null;
+            return false;
+        }
+        return true;
+    }
+
+    // scene
+    
+    func new_scene<T>() .T {
+        func = malloc_t<T>();
+        #if objectid(T).func.update;
+            func.super.callback.update = T::update*;
+        #endif
+        #if objectid(T).func.draw;
+            func.super.callback.draw = T::draw*;
+        #endif
+        #if objectid(T).func.wake;
+            func.super.callback.wake = T::wake*;
+        #endif
+        #if objectid(T).func.destructor;
+            func.super.callback.destructor = T::destructor*;
+        #endif
+        func->set_window(this);
+        func->set_name(objectid(T).name);
+        #if objectid(T).func.init;
+            if !func->init(this.render) {
+                printf("Failed to load \"%s\" scene.\n", objectid(T).name);
+                exit(1);
+            }
+        #endif
+    }
+
+    private static func free_scene_internal(scene. scene) {
+        if scene.callback.destructor ~= null {
+            proto fn(this void);
+            fn[scene.callback.destructor](scene);
+        }
+        free(scene);
+    }
+
+    inline free_scene(scene. scene) {
+        this.garbage->push_back(scene);
+    }
+
+    func safe_free_scene(scene. scene) {
+        var count size_t = this.scenes->count();
+        while count {
+            if this.scenes->at(--count) == scene {
+                return;
+            }
+        }
+        this->free_scene(scene);
+    }
+
+    inline push_scene(scene. scene) {
+        this.scenes->push_back(scene);
+    }
+
+    inline get_last_scene() .scene {
+        if this.scenes->empty();
+            return null;
+        return this.scenes->back();
+    }
+
+    inline pop_scene() .scene {
+        if this.scenes->empty();
+            return null;
+        this->set_scene(func = this.scenes->back());
+        this.scenes->pop_back();
+        if func.callback.wake ~= null {
+            proto fn(this void);
+            fn[func.callback.wake](func);
+        }
+    }
+
+    func set_scene(scene. scene) {
+        if this.current_scene == null {
+            this.current_scene = scene;
+        else
+            if this.pending_scene ~= null;
+                this->safe_free_scene(this.pending_scene);
+            this.pending_scene = scene;
+        }
+    }
+
+    inline set_new_scene<T>() {
+        this->set_scene(this->new_scene<T>());
+    }
+
+    private inline swap_scene() {
+        if this.pending_scene ~= null {
+            if this.current_scene ~= null;
+                this->safe_free_scene(this.current_scene);
+            this.current_scene = this.pending_scene;
+            this.pending_scene = null;
+        }
+    }
+
+    //
+
+    inline dump() {
+        var count size_t = this.garbage->count();
+        while count {
+            this->free_scene_internal(this.garbage->at(--count));
+        }
+        this.garbage->clear();
+    }
+
+    //
+
+    inline update() {
+        var scene. scene = this.current_scene;
+        if scene.callback.update ~= null {
+            proto fn(this void, render void);
+            fn[scene.callback.update](scene, this.render);
+        }
+    }
+
+    inline draw() {
+        var scene. scene = this.current_scene;
+        if scene.callback.draw ~= null {
+            proto fn(this void, render void);
+            fn[scene.callback.draw](scene, this.render);
+        }
+    }
+
+    inline present() {
+        SDL_RenderPresent(this.render);
+    }
+
+    //
+
+    inline enable_turbo(ms int) {
+        this.turbo = SDL_GetTicks() + ms;
+    }
+
+    //
+
+    inline quit() {
+        this.quit = true;
+    }
+
+    //
+
+    func on_keydown(event. SDL_KeyboardEvent) {
+        if !event.repeat {
+            if event.keysym.scancode == CPI_SCANCODE_SHIFT_START {
+                var surface void = this->screen_capture_to_surface2();
+                if surface ~= null {
+                    var tm. struct_tm = localtime(&time(null));
+                    var filename string;
+                    IMG_SavePNG(surface, filename->format("screenshots/%04d-%02d-%02d-%02d_%02d_%02d_%04d.png",
+                            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, random<int>(10000)));
+                    SDL_FreeSurface(surface);
+                }
+            }
+        }
+    }
+
+    //
+
+    func game_loop() {
+        this->enable_turbo(8000);
+        while !this.quit {
+            var event SDL_Event;
+            while SDL_PollEvent(&event) {
+                if event.type == SDL_KEYDOWN {
+                    this->on_keydown(&event.key);
+                    this->enable_turbo(3000);
+                elseif event.type == SDL_QUIT;
+                    return;
+                }
+            }
+            this->update();
+            if this.pending_scene == null {
+                this->draw();
+                this->present();
+            }
+            this->swap_scene();
+            this->dump();
+            if this.turbo < SDL_GetTicks() {
+                forvar standby uint32 = SDL_GetTicks() + 300 ;; {
+                    if SDL_PollEvent(&event) {
+                        if event.type == SDL_KEYDOWN {
+                            this->on_keydown(&event.key);
+                            this->enable_turbo(3000);
+                            break;
+                        elseif event.type == SDL_QUIT;
+                            return;
+                        }
+                    }
+                    if SDL_GetTicks() > standby;
+                        break;
+                    usleep(50000);
+                }
+            else
+                usleep(3000);
+            }
+        }
+    }
+
+    //
+
+    inline get_handle() void {
+        return this.wnd;
+    }
+
+    inline get_render() void {
+        return this.render;
+    }
+
+    inline get_scene() .scene {
+        return this.scene;
+    }
+
+    inline get_size(w. int, h. int) {
+        SDL_GetWindowSize(this.wnd, w, h);
+    }
+
+    //
+
+    func screen_capture_to_surface(rect. SDL_Rect) void {
+        var format uint32 = SDL_GetWindowPixelFormat(this.wnd);
+        var surface. SDL_Surface = SDL_CreateRGBSurfaceWithFormat(0, rect.w, rect.h, 24, format);
+        if surface == null;
+            return null;
+        if SDL_LockSurface(surface) {
+            SDL_FreeSurface(surface);
+            return null;
+        }
+        SDL_RenderReadPixels(this.render, rect, format, surface.pixels, surface.pitch);
+        SDL_UnlockSurface(surface);
+        return surface;
+    }
+
+    func screen_capture_to_surface2() void {
+        var rect SDL_Rect = 0;
+        this->get_size(&rect.w, &rect.h);
+        return this->screen_capture_to_surface(&rect);
+    }
+
+    func screen_capture(rect. SDL_Rect) void {
+        var surface void = this->screen_capture_to_surface(rect);
+        if surface == null;
+            return null;
+        func = SDL_CreateTextureFromSurface(this.render, surface);
+        SDL_FreeSurface(surface);
+    }
+
+    func screen_capture2() void {
+        var surface void = this->screen_capture_to_surface2();
+        if surface == null;
+            return null;
+        func = SDL_CreateTextureFromSurface(this.render, surface);
+        SDL_FreeSurface(surface);
+    }
+
+}

@@ -1,0 +1,79 @@
+
+/*
+    set_normal_image(render void, filename. char) bool
+    set_hover_image(render void, filename. char) bool
+    set_image(render void, filename. char) bool
+    set_outline_size(size int)
+    get_outline_size() int
+*/
+
+class game+, control+, image_button {
+
+    inherit game::control = super;
+
+    private import lib::sdl2;
+
+    struct image_button {
+        normal texture;
+        hover texture;
+        image texture;
+        outline_size int;
+    }
+
+    func constructor() {
+        constructor(this);
+    }
+
+    func destructor() {
+        destructor(this);
+    }
+
+    inline set_normal_image(render void, filename. char) bool {
+        if func = this.normal->load_file(render, filename) {
+            this->set_size(
+                this.normal->get_width(),
+                this.normal->get_height());
+        }
+    }
+
+    inline set_hover_image(render void, filename. char) bool {
+        return this.hover->load_file(render, filename);
+    }
+
+    inline set_image(render void, filename. char) bool {
+        return this.image->load_file(render, filename);
+    }
+
+    inline set_outline_size(size int) {
+        this.outline_size = size;
+    }
+
+    inline get_outline_size() int {
+        return this.outline_size;
+    }
+    
+    func draw(render void) {
+        var rect SDL_Rect = this->get_rect();
+        if this->has_focus() {
+            this.hover->draw(render, rect.x, rect.y);
+        else
+            this.normal->draw(render, rect.x, rect.y);
+        }
+        if this.outline_size {
+            rect.x += this.outline_size;
+            rect.y += this.outline_size;
+            rect.w -= this.outline_size * 2;
+            rect.h -= this.outline_size * 2;
+        }
+        var width int = this.image->get_width();
+        var height int = this.image->get_height();
+        if width > rect.w;
+            width = rect.w;
+        if height > rect.h;
+            height = rect.h;
+        this.image->draw3(render,
+            rect.x + (rect.w - width) / 2,
+            rect.y + (rect.h - height) / 2, width, height);
+    }
+
+}

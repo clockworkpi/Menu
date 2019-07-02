@@ -1,0 +1,189 @@
+global images = []
+global animCounter = 0.0f
+global slideCounter = 1
+global time = 0.0f
+global catX = 100.0f
+global catY = 100.0f
+global activeFont
+global song
+global rainbow
+global rainbowOffset = 0
+global rainbowTimer = 0.0f
+global rainbowAlternate = true
+global newStarCounter = 0.0f
+global counter = 0.0f
+global stars = List()
+global starImages = []
+
+def conf(t) {
+    t.window.width = 340
+    t.window.height = 260
+    t.version = "0.18.0"
+}
+
+def load() {
+    love.graphics.setBackgroundColor(15, 77, 143)
+
+    // Load the images.
+    for (var i = 1; i <= 12; ++i) {
+        images.push_back(love.graphics.newImage("cat/" + to_string(i) + ".png"))
+        starImages.push_back(love.graphics.newImage("star/star" + to_string(i) + ".png"))
+    }
+    rainbow = love.graphics.newImage("rainbow.png")
+
+    // Set the cat location.
+    catX = love.graphics.getWidth() / 2 - images[0].getWidth() / 2
+    catY = love.graphics.getHeight() / 2 - images[0].getHeight() / 2
+
+    // Find the default font.
+    activeFont = love.graphics.newFont()
+
+    // Play the music.
+    song = love.sound.newSoundData("nyan.wav")
+    song.setLooping(true)
+    song.play()
+
+    love.graphics.setDefaultFilter("nearest")
+}
+
+def addStar() {
+    var x = love.math.random(0, love.graphics.getWidth())
+    var y = love.math.random(0, love.graphics.getHeight())
+    stars.push_back([x, y, counter])
+}
+
+def draw() {
+    // Draw all the Stars
+    var removeStar = 0
+    for (star : stars) {
+        var slide = 2
+        var animPoint = (counter - star[2]) * 10
+        slide = animPoint
+        if (slide < 12) {
+            love.graphics.draw(starImages[slide], star[0], star[1], 0.0f, 7.0f)
+        }
+        else {
+            removeStar = removeStar + 1
+        }
+    }
+    while (removeStar > 0) {
+        stars.pop_front()
+        removeStar = removeStar - 1
+    }
+
+    // Display the Rainbow
+    drawRainbow()
+
+    // Draw the cat.
+    love.graphics.draw(images[slideCounter - 1], catX, catY)
+
+    // Text at the bottom.
+    var scoreInt = 2 // Port the time to an integer.
+    scoreInt = time
+    var text = "YOU'VE NYANED FOR " + to_string(scoreInt) + " SECONDS"
+    love.graphics.print(text, love.graphics.getWidth() / 2 - activeFont.getWidth(text) / 2, love.graphics.getHeight() - activeFont.getHeight(text) * 4)
+}
+
+def update(dt) {
+    // Update all the counters.
+    animCounter += dt
+    counter += dt
+    rainbowTimer += dt
+    time += dt
+
+    // Animate the cat.
+    if (animCounter > 0.065f) {
+        animCounter = 0
+        slideCounter = slideCounter + 1
+        if (slideCounter > images.size()) {
+            slideCounter = 1
+        }
+    }
+
+    // Animate the rainbow.
+    if (rainbowTimer > 0.35f) {
+        rainbowTimer = 0.0f
+        rainbowAlternate = !rainbowAlternate
+    }
+
+    // Move the stars
+    for (star : stars) {
+        star[0] = star[0] - dt * 120
+    }
+
+    // See if we are to add a new star.
+    newStarCounter = newStarCounter - dt
+    if (newStarCounter <= 0) {
+        newStarCounter = love.math.random(0.01f, 0.05f)
+        addStar()
+    }
+
+    // Move the cat?
+    var catSpeed = 30.0f
+    if (love.joystick.isDown(0, "up")) {
+        catY = catY - dt * catSpeed
+    }
+    if (love.joystick.isDown(0, "down")) {
+        catY = catY + dt * catSpeed
+    }
+    if (love.joystick.isDown(0, "left")) {
+        catX = catX - dt * catSpeed
+    }
+    if (love.joystick.isDown(0, "right")) {
+        catX = catX + dt * catSpeed
+    }
+}
+
+def drawRainbow() {
+    var i = 0
+    var rainbowDrawY = catY + rainbow.getHeight() / 6
+    var rain = 0
+    if (rainbowAlternate) {
+        rainbowOffset = 3
+    }
+    else {
+        rainbowOffset = 1
+    }
+    var rainbowOffsetMap = [
+        "0": 10,
+        "1": 0,
+        "2": -10,
+        "3": -20,
+        "4": -10,
+        "5": 0,
+        "6": 10,
+        "7": 20,
+        "8": 10,
+        "9": 0,
+        "10": -10,
+        "11": 0
+    ];
+    while (i < catX + images[0].getWidth() / 3) {
+        rain = rainbowOffsetMap[to_string(rainbowOffset)]
+        rainbowOffset = rainbowOffset + 1
+        if (rainbowOffset > 11) {
+            rainbowOffset = 0
+        }
+        love.graphics.draw(rainbow, i, rainbowDrawY + rain)
+        i = i + rainbow.getWidth()
+    }
+}
+
+/**
+ * Callback; Save the current state as a JSON string.
+ */
+def savestate() {
+    var data = [
+        "time": time
+    ]
+    return to_json(data)
+}
+
+/**
+ * Callback; Load the state from the given JSON string.
+ */
+def loadstate(data) {
+    var info = from_json(data)
+    time = info["time"]
+    return true
+}

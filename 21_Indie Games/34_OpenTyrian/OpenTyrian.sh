@@ -1,0 +1,2 @@
+cd OpenTyrian
+./opentyrian .

@@ -1,0 +1,96 @@
+
+class std+, dmem {
+
+    private import rt::c = crt;
+
+    struct dmem {
+        ptr void;
+        page size_t;
+        capacity size_t;
+        used size_t;
+    }
+
+    func constructor() {
+        this.ptr = null;
+        this.page = 0x200;
+        this.capacity = 0;
+        this.used = 0;
+    }
+
+    func destructor() {
+        this->free();
+    }
+
+    func free() {
+        if this.ptr ~= null {
+            crt::free(this.ptr);
+            this.ptr = null;
+            this.capacity = 0;
+            this.used = 0;
+        }
+    }
+
+    inline alloc(size size_t) void {
+        var used size_t = this.used;
+        this->exp(size);
+        return this.ptr + used;
+    }
+
+    inline alloc_t<T>() .T {
+        return this->alloc(sizeof(T));
+    }
+
+    inline reserve(size size_t) void {
+        var used size_t = this.used;
+        this->exp(size);
+        return this.ptr + (this.used = used);
+    }
+
+    inline reserve_t<T>() .T {
+        return this->reserve(sizeof(T));
+    }
+
+    func write(buf void, size size_t) void {
+        memmove(func = this->alloc(size), buf, size);
+    }
+
+    func write_at(offset size_t, buf void, size size_t) void {
+        var used size_t = this.used;
+        if offset == used {
+            memmove(func = this->alloc(size), buf, size);
+        elseif offset < used;
+            this->exp(size);
+            memmove((func = this.ptr + offset) + size, func, used - offset);
+            memcpy(func, buf, size);
+        else
+            return null;
+        }
+    }
+
+    func remove(offset size_t, size size_t) bool {
+        var move size_t = offset + size;
+        if move > this.used;
+            return false;
+        memmove(this.ptr + offset, this.ptr + move, this.used - move);
+        this.used -= size;
+        return true;
+    }
+
+    func exp(size size_t) {
+        var page size_t = this.page;
+        var capacity size_t = this.capacity;
+        var used size_t = this.used + size;
+        if used < this.used {
+            printf("dmem: out of memory\n");
+            exit(1);
+        }
+        if capacity < used;
+            capacity = (used + page - 1) / page * page;
+        if !capacity;
+            capacity = page;
+        if capacity ~= this.capacity;
+            this.ptr = realloc(this.ptr, this.capacity = capacity);
+        this.used = used;
+    }
+
+}

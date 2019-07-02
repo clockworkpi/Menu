@@ -1,0 +1,87 @@
+
+class game+, fadeio {
+
+    private import rt::c, lib::sdl2;
+
+    struct fadeio {
+        delay delay;
+        texture texture;
+        rect SDL_Rect;
+        render void;
+        done bool;
+        r uint8;
+        g uint8;
+        b uint8;
+    }
+
+    func constructor() {
+        memset(this, 0, sizeof(fadeio));
+        constructor(this);
+    }
+
+    func destructor() {
+        destructor(this);
+    }
+
+    //
+
+    inline init(wnd. window, duration uint32) {
+        this.delay->init(duration);
+        this.render = wnd->get_render();
+        wnd->get_size(&this.rect.w, &this.rect.h);
+    }
+
+    //
+
+    inline set_color(r uint8, g uint8, b uint8) {
+        this.texture->destroy();
+        this.r = r;
+        this.g = g;
+        this.b = b;
+    }
+
+    inline set_texture(texture void, auto_destroy bool = true) bool {
+        if func = this.texture->init(texture, auto_destroy);
+            this.texture->set_blend_mode(SDL_BLENDMODE_BLEND);
+    }
+
+    //
+
+    inline done() {
+        this.delay->done();
+    }
+
+    inline reset() {
+        this.delay->reset();
+    }
+
+    //
+
+    inline do() bool {
+        if func = this.delay->do() {
+            if !this.done;
+                this.texture->destroy(), this.done = true;
+        else
+            this->fade();
+        }
+    }
+
+    //
+
+    private func fade() {
+        var alpha uint8 = this.delay->get_per<uint8>(0xff);
+        var texture void = this.texture->get_texture();
+        if texture == null {
+            SDL_SetRenderDrawBlendMode(this.render, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(this.render, this.r, this.g, this.b, alpha);
+            SDL_RenderFillRect(this.render, &this.rect);
+            SDL_SetRenderDrawBlendMode(this.render, SDL_BLENDMODE_NONE);
+        else
+            this.texture->set_alpha_mod(alpha);
+            this.texture->draw(this.render,
+                this.rect.w - (this.rect.w + this.texture->get_width()) / 2,
+                this.rect.h - (this.rect.h + this.texture->get_height()) / 2);
+        }
+    }
+
+}
