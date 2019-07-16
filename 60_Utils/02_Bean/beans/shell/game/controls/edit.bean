@@ -1,0 +1,75 @@
+
+/*
+    set_text_color(color uint32)
+    set_text(render void, text. char, color uint32)
+    get_text() .char
+    get_keybd_cb() void
+*/
+
+class game+, control+, edit {
+
+    inherit game::control = super;
+
+    private import lib::sdl2;
+
+    private alias string = std::string;
+
+    struct edit {
+        tex texture;
+        str string;
+        text_color uint32;
+    }
+
+    func constructor() {
+        constructor(this);
+        this.text_color = 0xff000000;
+    }
+
+    func destructor() {
+        destructor(this);
+    }
+
+    inline set_text_color(color uint32) {
+        this.text_color = color;
+    }
+
+    inline set_text(render void, text. char) {
+        this.str->set(text);
+        this.tex->init(
+            global::uni_font->create_tex(render, text, this.text_color));
+    }
+
+    inline get_text() .char {
+        return this.str->ptr();
+    }
+
+    inline get_keybd_cb() void {
+        return lambda(text. char, this.edit) [
+            this->set_text(this->get_window()->get_render(), text);
+        ];
+    }
+    
+    func draw(render void) {
+        define {
+            TEXT_GAP = 3;
+        }
+        var rect SDL_Rect = this->get_rect();
+        SDL_SetRenderDrawColor(render, 0xff, 0xff, 0xff, 0xff);
+        SDL_RenderFillRect(render, &rect);
+        if this->has_focus() {
+            SDL_SetRenderDrawColor(render, 0, 162, 232, 0xff);
+        else
+            SDL_SetRenderDrawColor(render, 127, 127, 127, 0xff);
+        }
+        SDL_RenderDrawRect(render, &rect);
+        if this.tex->get_texture() ~= null {
+            var width int = this.tex->get_width();
+            var height int = this.tex->get_height();
+            var max_width int = rect.w - (TEXT_GAP * 2);
+            if width > max_width;
+                width = max_width;
+            this.tex->draw2(render, rect.x + TEXT_GAP, rect.y + (rect.h - height) / 2, width, height);
+        }
+    }
+
+}

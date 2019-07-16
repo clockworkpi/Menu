@@ -1,0 +1,130 @@
+
+class game+, scene+, main+, status_bar {
+
+    inherit game::control = super;
+
+    private import rt::c, lib::sdl2;
+
+    struct status_bar {
+        long_timer delay;
+        short_timer delay;
+        batt_icon(4) texture;
+        batt_charging_icon texture;
+        batt_cap int;
+        wifi_icon(4) texture;
+        wifi_sig int;
+        colon bool;
+    }
+
+    func constructor() {
+        constructor(this);
+        this.batt_cap = -1;
+        this.wifi_sig = -1;
+        this.colon = true;
+    }
+
+    func destructor() {
+        destructor(this);
+    }
+
+    define {
+        BATT_UNKNOWN = 0;
+        BATT_LOW = 1;
+        BATT_MID = 2;
+        BATT_FULL = 3;
+    }
+
+    define {
+        WIFI_OFF = 0;
+        WIFI_LOW = 1;
+        WIFI_MID = 2;
+        WIFI_HIGH = 3;
+    }
+
+    func init(render void) bool {
+        this.long_timer->init(3000);
+        this.long_timer->done();
+        this.short_timer->init(1000);
+        this.short_timer->done();
+        this.batt_icon[BATT_UNKNOWN]->load_file(render,
+            global::make_path("main/battery.png"));
+        this.batt_icon[BATT_LOW]->load_file(render,
+            global::make_path("main/battery_low.png"));
+        this.batt_icon[BATT_MID]->load_file(render,
+            global::make_path("main/battery_mid.png"));
+        this.batt_icon[BATT_FULL]->load_file(render,
+            global::make_path("main/battery_full.png"));
+        this.batt_charging_icon->load_file(render,
+            global::make_path("main/battery_charging.png"));
+        this.wifi_icon[WIFI_OFF]->load_file(render,
+            global::make_path("main/wifi.png"));
+        this.wifi_icon[WIFI_LOW]->load_file(render,
+            global::make_path("main/wifi_low.png"));
+        this.wifi_icon[WIFI_MID]->load_file(render,
+            global::make_path("main/wifi_mid.png"));
+        this.wifi_icon[WIFI_HIGH]->load_file(render,
+            global::make_path("main/wifi_high.png"));
+        return true;
+    }
+
+    func update(render void) {
+        if this.long_timer->do() {
+            if !global::wifi->is_connected(&this.wifi_sig);
+                this.wifi_sig = -1;
+            this.long_timer->undo();
+        }
+        if this.short_timer->do() {
+            this.batt_cap = global::get_battery_cap();
+            this.colon = !this.colon;
+            this.short_timer->undo();
+        }
+    }
+
+    private func get_batt_icon() .texture {
+        var icon int = BATT_UNKNOWN;
+        if this.batt_cap ~= -1 {
+            var cap int = this.batt_cap & ~0x100;
+            if cap > 65 {
+                icon = BATT_FULL;
+            elseif cap > 20;
+                icon = BATT_MID;
+            elseif cap > 0;
+                icon = BATT_LOW;
+            }
+        }
+        return &this.batt_icon[icon];
+    }
+
+    private func get_wifi_icon() .texture {
+        var icon int;
+        if this.wifi_sig > 60 {
+            icon = WIFI_HIGH;
+        elseif this.wifi_sig > 30;
+            icon = WIFI_MID;
+        elseif this.wifi_sig > 0;
+            icon = WIFI_LOW;
+        else
+            icon = WIFI_OFF;
+        }
+        return &this.wifi_icon[icon];
+    }
+
+    func draw(render void) {
+        var x int = this->get_right();
+        var y int = this->get_y();
+        using batt_icon. texture = this->get_batt_icon() {
+            if this.batt_cap ~= -1;
+                global::small_font->draw_cap(render, x -= 40, y + 7, this.batt_cap & ~0x100);;
+            batt_icon->draw(render, x -= batt_icon->get_width(), y);
+            if this.batt_cap ~= -1 and
+                this.batt_cap & 0x100;
+                this.batt_charging_icon->draw(render, x, y);
+        }
+        using wifi_icon. texture = this->get_wifi_icon() {
+            wifi_icon->draw(render, x -= wifi_icon->get_width(), y);
+        }
+        global::small_font->draw_time(render,
+            x -= 55, y + 7, time(null), this.colon);
+    }
+
+}

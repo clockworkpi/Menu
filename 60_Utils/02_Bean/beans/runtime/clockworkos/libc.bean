@@ -1,0 +1,503 @@
+
+module rt+, c+ {
+
+    import libc;
+
+    // #include <stdlib.h>
+    // #include <string.h>
+
+    func malloc(size size_t) void {
+        runtime malloc(size size_t) void = 100;
+        if (func = malloc(size)) == null {
+            printf("malloc(0x%x): out of memory.\n", size);
+            exit(1);
+        }
+    }
+
+    func realloc(ptr void, size size_t) void {
+        runtime realloc(ptr void, size size_t) void = 101;
+        if (func = realloc(ptr, size)) == null {
+            printf("realloc(0x%x): out of memory.\n", size);
+            exit(1);
+        }
+    }
+
+    func calloc(nmemb size_t, size size_t) void {
+        runtime calloc(nmemb size_t, size size_t) void = 102;
+        if (func = calloc(nmemb, size)) == null {
+            printf("calloc(0x%x): out of memory.\n", size);
+            exit(1);
+        }
+    }
+
+    func strdup(s. char) .char {
+        runtime strdup(s. char) .char = 103;
+        if (func = strdup(s)) == null {
+            printf("strdup: out of memory.\n");
+            exit(1);
+        }
+    }
+
+    runtime free(ptr void) = 104;
+
+    inline malloc_t<T>() .T {
+        func = malloc(sizeof(T));
+        #if objectid(T).func.constructor;
+            func->constructor();
+        #endif
+    }
+
+    inline free_t<T>(block. T) {
+        #if objectid(T).func.destructor;
+            block->destructor();
+        #endif
+        free(block);
+    }
+
+    // #include <string.h>
+    runtime strcpy(dest. char, src. char) .char = 105;
+    runtime strncpy(dest. char, src. char, n size_t) .char = 106;
+    runtime strlen(s. char) size_t = 107;
+    runtime strcmp(s1. char, s2. char) int = 108;
+    runtime strncmp(s1. char, s2. char, n size_t) int = 109;
+    runtime strcasecmp(s1. char, s2. char) int = 110;
+    runtime strncasecmp(s1. char, s2. char, n size_t) int = 111;
+    runtime strstr(haystack. char, needle. char) .char = 112;
+    runtime strchr(s. char, c int) .char = 113;
+    runtime strrchr(s. char, c int) .char = 114;
+
+    // #include <string.h>
+    runtime memcpy(dest void, src void, n size_t) void = 115;
+    runtime memmove(dest void, src void, n size_t) void = 116;
+    runtime memcmp(s1 void, s2 void, n size_t) int = 117;
+    // runtime memmem(haystack void, haystacklen size_t, needle void, needlelen size_t) void = 118;
+    runtime memset(s void, c int, n size_t) void = 119;
+
+    /*-
+    * Copyright (c) 2005 Pascal Gloor <pascal.gloor@spale.com>
+    *
+    * Redistribution and use in source and binary forms, with or without
+    * modification, are permitted provided that the following conditions
+    * are met:
+    * 1. Redistributions of source code must retain the above copyright
+    *    notice, this list of conditions and the following disclaimer.
+    * 2. Redistributions in binary form must reproduce the above copyright
+    *    notice, this list of conditions and the following disclaimer in the
+    *    documentation and/or other materials provided with the distribution.
+    * 3. The name of the author may not be used to endorse or promote
+    *    products derived from this software without specific prior written
+    *    permission.
+    *
+    * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+    * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+    * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+    * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+    * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    * SUCH DAMAGE.
+    */
+
+    func memchr(s void, c int, n size_t) void {
+        if n {
+            var p. unsigned char = s;
+            for ;; {
+                if .p == unsigned char(c);
+                    return p;
+                p++;
+                if !(--n);
+                    break;
+            }
+        }
+        return null;
+    }
+
+    func memmem(l void, l_len size_t, s void, s_len size_t) void {
+        if !l_len or !s_len or l_len < s_len;
+            return null;
+        var cl. char = l, cs. char = s;
+        if s_len == 1;
+            return memchr(cl, .cs, 1);
+        var cur. char = cl, last. char = cl + l_len - s_len;
+        for ; cur <= last; cur += 1 {
+            if .cur == .cs and !memcmp(cur, cs, s_len);
+                return cur;
+        }
+        return null;
+    }
+
+    // #include <ctype.h>
+    runtime tolower(c int) int = 120;
+    runtime toupper(c int) int = 121;
+    runtime isalnum(c int) int = 122;
+    runtime isalpha(c int) int = 123;
+    runtime isascii(c int) int = 124;
+    runtime isblank(c int) int = 125;
+    runtime iscntrl(c int) int = 126;
+    runtime isdigit(c int) int = 127;
+    runtime isgraph(c int) int = 128;
+    runtime islower(c int) int = 129;
+    runtime isprint(c int) int = 130;
+    runtime ispunct(c int) int = 131;
+    runtime isspace(c int) int = 132;
+    runtime isupper(c int) int = 133;
+    runtime isxdigit(c int) int = 134;
+
+    func strupper(str. char) {
+        while .str;
+            .str = toupper(.str), str += 1;
+    }
+
+    func strlower(str. char) {
+        while .str;
+            .str = tolower(.str), str += 1;
+    }
+
+    func isnumeric(str. char) bool {
+        if !(.str);
+            return false;
+        for ;; {
+            if !isdigit(.str);
+                return false;
+            if !(.(++str));
+                return true;
+        }
+    }
+
+    // #include <stdlib.h>
+    runtime atoi(nptr. char) int = 135;
+    runtime atol(nptr. char) long = 136;
+    runtime atoll(nptr. char) dlong = 137;
+    runtime atof(nptr. char) double = 138;
+    runtime strtod(nptr. char, endptr++ char) double = 139;
+    runtime strtof(nptr. char, endptr++ char) float = 140;
+
+    // #include <stdlib.h>
+    runtime srand(seed unsigned int) = 141;
+    runtime rand() int = 142;
+
+    inline randf() float {
+        return float(rand()) / RAND_MAX;
+    }
+
+    inline random<T>(value T) T {
+        return randf() * value;
+    }
+
+    inline random2<T>(min T, max T) T {
+        return T(randf() * float(max - min + 1)) + min;
+    }
+
+    func srand2(a uint, b uint, c uint) {
+        a=a-b;a=a-c;a=a^(c>>13);
+        b=b-c;b=b-a;b=b^(a<<8);
+        c=c-a;c=c-b;c=c^(b>>13);
+        a=a-b;a=a-c;a=a^(c>>12);
+        b=b-c;b=b-a;b=b^(a<<16);
+        c=c-a;c=c-b;c=c^(b>>5);
+        a=a-b;a=a-c;a=a^(c>>3);
+        b=b-c;b=b-a;b=b^(a<<10);
+        c=c-a;c=c-b;c=c^(b>>15);
+        srand(c);
+    }
+
+    // #include <stdio.h>
+    runtime get_stdin() +FILE = 143;
+    runtime get_stdout() +FILE = 144;
+    runtime get_stderr() +FILE = 145;
+
+    // #include <stdio.h>
+    runtime fopen(pathname. char, mode. char) +FILE = 146;
+    runtime fdopen(fd int, mode. char) +FILE = 147;
+    runtime freopen(pathname. char, mode. char, stream+ FILE) +FILE = 148;
+    runtime fclose(stream+ FILE) int = 149;
+    runtime fileno(stream+ FILE) int = 150;
+    runtime fwrite(ptr void, size size_t, nmemb size_t, stream+ FILE) size_t = 151;
+    runtime fread(ptr void, size size_t, nmemb size_t, stream+ FILE) size_t = 152;
+    runtime fputc(c int, stream+ FILE) int = 153;
+    runtime fputs(s. char, stream+ FILE) int = 154;
+    runtime fgetc(stream+ FILE) int = 155;
+    runtime fgets(s. char, size int, stream+ FILE) .char = 156;
+    runtime feof(stream+ FILE) int = 157;
+    runtime fseek(stream+ FILE, offset long, whence int) int = 158;
+    runtime ftell(stream+ FILE) long = 159;
+    runtime fgetpos(stream+ FILE, pos+ fpos_t) int = 160;
+    runtime fsetpos(stream+ FILE, pos+ fpos_t) int = 161;
+    runtime fflush(stream+ FILE) int = 162;
+    runtime ferror(stream+ FILE) int = 163;
+    runtime rewind(stream+ FILE) = 164;
+    runtime clearerr(stream+ FILE) = 165;
+
+    // #include <dirent.h>
+    runtime opendir(name. char) +DIR = 166;
+    runtime fdopendir(fd int) +DIR = 167;
+    runtime readdir(dirp+ DIR) .struct_dirent = 168;
+    runtime seekdir(dirp+ DIR, offset long) = 169;
+    runtime telldir(dirp+ DIR) long = 170;
+    runtime rewinddir(dirp+ DIR) = 171;
+    runtime closedir(dirp+ DIR) = 172;
+
+    // #include <sys/stat.h>
+    // #include <unistd.h>
+    runtime mkdir(pathname. char, mode mode_t) int = 173;
+    runtime rmdir(pathname. char) int = 174;
+    runtime mkfifo(pathname. char, mode mode_t) int = 175;
+
+    // #include <sys/stat.h>
+    // #include <fcntl.h>
+    // #include <unistd.h>
+    runtime open(pathname. char, flags int) int = 176;
+    runtime creat(pathname. char, flags int, mode mode_t) int = 177;
+    runtime close(fd int) int = 178;
+    runtime read(fd int, buf void, count size_t) ssize_t = 179;
+    runtime write(fd int, buf void, count size_t) ssize_t = 180;
+
+    // #include <stdio.h>
+    runtime rename(oldpath. char, newpath. char) int = 181;
+    runtime remove(pathname. char) int = 182;
+
+    // #include <unistd.h>
+    runtime link(oldpath. char, newpath. char) int = 183;
+    runtime unlink(pathname. char) int = 184;
+    runtime symlink(target. char, linkpath. char) int = 185;
+
+    // #include <unistd.h>
+    // #include <sys/stat.h>
+    runtime stat(path. char, buf. struct_stat) int = 186;
+    runtime fstat(fd int, buf. struct_stat) int = 187;
+
+    // #include <unistd.h>
+    runtime chown(pathname. char, owner uid_t, group gid_t) int = 188;
+    runtime fchown(fd int, owner uid_t, group gid_t) int = 189;
+
+    // #include <sys/stat.h>
+    runtime chmod(pathname. char, mode mode_t) int = 190;
+    runtime fchmod(fd int, mode mode_t) int = 191;
+
+    // #include <unistd.h>
+    runtime chdir(path. char) int = 192;
+    runtime fchdir(fd int) int = 193;
+    runtime truncate(path. char, length off_t) int = 194;
+    runtime ftruncate(fd int, length off_t) int = 195;
+
+    // #include <sys/mount.h>
+    runtime mount(source. char, target. char, filesystemtype. char, mountflags unsigned long, data void) int = 196;
+
+    // #include <time.h>
+    runtime time(t. time_t) time_t = 197;
+    runtime asctime(tm. struct_tm) .char = 198;
+    runtime ctime(timep. time_t) .char = 199;
+    runtime gmtime(timep. time_t) .struct_tm = 200;
+    runtime localtime(timep. time_t) .struct_tm = 201;
+    runtime difftime(time1 time_t, time2 time_t) double = 202;
+    runtime mktime(tm. struct_tm) time_t = 203;
+    runtime clock() clock_t = 204;
+    runtime clock_getres(clk_id clockid_t, res. struct_timespec) int = 205;
+    runtime clock_gettime(clk_id clockid_t, tp. struct_timespec) int = 206;
+    runtime clock_settime(clk_id clockid_t, tp. struct_timespec) = 207;
+
+    // #include <sys/stat.h>
+    runtime umask(mask mode_t) mode_t = 208;
+
+    // #include <stdlib.h>
+    runtime getenv(name. char) .char = 209;
+    runtime setenv(name. char, value. char, overwrite int) int = 210;
+    runtime unsetenv(name. char) int = 211;
+    runtime putenv(string. char) int = 212;
+    runtime clearenv() int = 213;
+
+    // #include <unistd.h>
+    runtime getpid() pid_t = 214;
+    runtime getppid() pid_t = 215;
+
+    // #include <stdlib.h>
+    runtime system(command. char) int = 216;
+
+    // #include <errno.h>
+    runtime get_errno() int = 217;
+    runtime set_errno(err int) = 218;
+
+    // #include <stdlib.h>
+    runtime exit(status int) = 219;
+
+    // #include <stdio.h>
+    runtime vprintf(format. char, ap+ va_list) int = 220;
+    runtime vsprintf(str. char, format. char, ap+ va_list) int = 221;
+    runtime vsnprintf(str. char, size size_t, format. char, ap+ va_list) int = 222;
+    runtime vscanf(format. char, ap+ va_list) int = 223;
+    runtime vsscanf(str. char, format. char, ap+ va_list) int = 224;
+    runtime vfprintf(stream+ FILE, format. char, ap+ va_list) int = 225;
+    runtime vfscanf(stream+ FILE, format. char, ap+ va_list) int = 226;
+
+    func printf(format. char, ...) int {
+        return vprintf(format, va_start(format));
+    }
+    func sprintf(str. char, format. char, ...) int {
+        return vsprintf(str, format, va_start(str));
+    }
+    func snprintf(str. char, size size_t, format. char, ...) int {
+        return vsnprintf(str, size, format, va_start(str));
+    }
+    func scanf(format. char, ...) int {
+        return vscanf(format, va_start(format));
+    }
+    func sscanf(str. char, format. char, ...) int {
+        return vsscanf(str, format, va_start(str));
+    }
+    func fprintf(stream+ FILE, format. char, ...) int {
+        return vfprintf(stream, format, va_start(stream));
+    }
+    func fscanf(stream+ FILE, format. char, ...) int {
+        return vfscanf(stream, format, va_start(stream));
+    }
+
+    inline vsprintfp(format. char, ap void) .char {
+        var len int = vsnprintf(null, 0, format, ap);
+        vsnprintf(func = malloc(++len), len, format, ap);
+    }
+
+    func sprintfp(format. char, ...) .char {
+        return vsprintfp(format, va_start(format));
+    }
+
+    // #include <fcntl.h>
+    runtime fcntl(fd int, cmd int, arg word) int = 227;
+    runtime fcntl2(fd int, cmd int, arg1 word, arg2 word) int = 228;
+    runtime fcntl3(fd int, cmd int, arg1 word, arg2 word, arg3 word) int = 229;
+    runtime fcntl4(fd int, cmd int, arg1 word, arg2 word, arg3 word, arg4 word) int = 230;
+
+    // #include <sys/ioctl.h>
+    runtime ioctl(fd int, request unsigned long, arg word) int = 231;
+    runtime ioctl2(fd int, request unsigned long, arg1 word, arg2 word) int = 232;
+    runtime ioctl3(fd int, request unsigned long, arg1 word, arg2 word, arg3 word) int = 233;
+    runtime ioctl4(fd int, request unsigned long, arg1 word, arg2 word, arg3 word, arg4 word) int = 234;
+
+    // #include <utime.h>
+    runtime utime(filename. char, times. struct_utimbuf) int = 235;
+    runtime utimes(filename. char, times. struct_timeval) int = 236;
+
+    // #include <sys/mount.h>
+    runtime umount(target. char) int = 237;
+    runtime umount2(target. char, flags int) int = 238;
+
+    // #include <unistd.h>
+    runtime getcwd(buf. char, size size_t) .char = 239;
+    runtime sysconf(name int) long = 240;
+    runtime sleep(seconds unsigned int) int = 241;
+    runtime usleep(usec useconds_t) int = 242;
+
+    // #include <locale.h>
+    runtime setlocale(category int, locale. char) .char = 243;
+    runtime localeconv() .struct_lconv = 244;
+
+    // #include <stdio.h>
+    runtime popen(command. char, type. char) +FILE = 245;
+    runtime pclose(stream+ FILE) int = 246;
+
+    // #include <signal.h>
+    runtime kill(pid pid_t, sig int) int = 247;
+
+    // #include <sys/select.h>
+    runtime select(nfds int, readfds. fd_set, writefds. fd_set, exceptfds. fd_set, timeout. struct_timeval) int = 248;
+
+    // #include <sys/select.h>
+    runtime FD_CLR(fd int, set. fd_set) = 249;
+    runtime FD_ISSET(fd int, set. fd_set) int = 250;
+    runtime FD_SET(fd int, set. fd_set) = 251;
+    runtime FD_ZERO(set. fd_set) = 252;
+
+    // #include <poll.h>
+    runtime poll(fds. struct_pollfd, nfds nfds_t, timeout int) = 253;
+
+    // #include <arpa/inet.h>
+    // #include <sys/socket.h>
+    runtime socket(domain int, type int, protocol int) int = 254;
+    runtime getsockopt(sockfd int, level int, optname int, optval void, optlen. socklen_t) int = 255;
+    runtime setsockopt(sockfd int, level int, optname int, optval void, optlen socklen_t) int = 256;
+    runtime connect(sockfd int, addr. struct_sockaddr, addrlen socklen_t) int = 257;
+    runtime accept(sockfd int, addr. struct_sockaddr, addrlen. socklen_t) int = 258;
+    runtime bind(sockfd int, addr. struct_sockaddr, addrlen socklen_t) int = 259;
+    runtime listen(sockfd int, backlog int) int = 260;
+    runtime send(sockfd int, buf void, len size_t, flags int) ssize_t = 261;
+    runtime sendto(sockfd int, buf void, len size_t, flags int, dest_addr. struct_sockaddr, addrlen socklen_t) ssize_t = 262;
+    runtime recv(sockfd int, buf void, len size_t, flags int) ssize_t = 263;
+    runtime recvfrom(sockfd int, buf void, len size_t, flags int, src_addr. struct_sockaddr, addrlen. socklen_t) ssize_t = 264;
+    runtime getsockname(sockfd int, addr. struct_sockaddr, addrlen. socklen_t) int = 265;
+    runtime getpeername(sockfd int, addr. struct_sockaddr, addrlen. socklen_t) int = 266;
+    runtime shutdown(sockfd int, how int) int = 267;
+
+    // #include <arpa/inet.h>
+    // #include <netinet/in.h>
+    // #include <sys/socket.h>
+    runtime inet_aton(cp. char, inp. struct_in_addr) int = 268;
+    runtime inet_addr(cp. char) in_addr_t = 269;
+    runtime inet_network(cp. char) in_addr_t = 270;
+    runtime inet_ntoa(in struct_in_addr) .char = 271;
+    runtime inet_makeaddr(net in_addr_t, host in_addr_t) struct_in_addr = 272;
+    runtime inet_lnaof(in struct_in_addr) in_addr_t = 273;
+    runtime inet_netof(in struct_in_addr) in_addr_t = 274;
+    runtime inet_ntop(af int, src void, dst. char, size socklen_t) .char = 275;
+    runtime inet_pton(af int, src. char, dst void) int = 276;
+
+    // #include <netdb.h>
+    runtime gethostbyname(name. char) .struct_hostent = 277;
+    runtime gethostbyaddr(addr void, len socklen_t, type int) .struct_hostent = 278;
+    runtime sethostent(stayopen int) = 279;
+    runtime endhostent() = 280;
+    runtime gethostent() .struct_hostent = 281;
+
+    // #include <netdb.h>
+    runtime getnetent() .struct_netent = 282;
+    runtime getnetbyname(name. char) .struct_netent = 283;
+    runtime getnetbyaddr(net uint32, type int) .struct_netent = 284;
+    runtime setnetent(stayopen int) = 285;
+    runtime endnetent() = 286;
+
+    // #include <netdb.h>
+    runtime getservent() .struct_servent = 287;
+    runtime getservbyname(name. char, proto. char) .struct_servent = 288;
+    runtime getservbyport(port int, proto. char) .struct_servent = 289;
+    runtime setservent(stayopen int) = 290;
+    runtime endservent() = 291;
+
+    // #include <sys/mman.h>
+    runtime mmap(addr void, length size_t, prot int, flags int, fd int, offset off_t) void = 292;
+    runtime munmap(addr void, length size_t) int = 293;
+    runtime mprotect(addr void, len size_t, prot int) int = 294;
+
+    // #include <stdio.h>
+    runtime perror(s. char) = 295;
+
+    // #include <unistd.h>
+    runtime execv(path. char, argv++ char) int = 296;
+    runtime execvp(file. char, argv++ char) int = 297;
+    runtime fork() pid_t = 298;
+
+    func execl(path. char, ...) int {
+        return execv(path, va_start(path));
+    }
+    func execlp(file. char, ...) int {
+        return execvp(file, va_start(file));
+    }
+
+    // #include <sys/wait.h>
+    runtime wait(status. int) pid_t = 299;
+    runtime waitpid(pid pid_t, status. int, options int) pid_t = 300;
+
+    // #include <unistd.h>
+    runtime pipe(pipefd[2] int) int = 301;
+    runtime dup(oldfd int) int = 302;
+    runtime dup2(oldfd int, newfd int) int = 303;
+
+    // #include <unistd.h>
+    runtime readlink(path. char, buf. char, bufsiz size_t) ssize_t = 304;
+
+    // #include <stdlib.h>
+    runtime realpath(path. char, resolved_path. char) .char = 305;
+
+    // event, epoll, ...
+
+}

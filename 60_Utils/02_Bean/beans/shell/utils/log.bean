@@ -1,0 +1,12 @@
+
+func append_log(format. char, ...) {
+    import rt::c;
+    define {
+        filename = "bean.log";
+    }
+    var stream void = fopen(filename, "a");
+    if stream ~= null {
+        vfprintf(stream, format, va_start(format));
+        fclose(stream);
+    }
+}

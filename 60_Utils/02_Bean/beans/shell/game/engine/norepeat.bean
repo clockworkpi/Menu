@@ -1,0 +1,24 @@
+
+class game+, norepeat {
+
+    struct norepeat {
+        lock bool;
+    }
+
+    func constructor() {
+        this.lock = true;
+    }
+
+    inline do() bool {
+        if !this.lock {
+            this.lock = true;
+            return true;
+        }
+        return false;
+    }
+
+    inline set(lock bool = false) {
+        this.lock = lock;
+    }
+
+}

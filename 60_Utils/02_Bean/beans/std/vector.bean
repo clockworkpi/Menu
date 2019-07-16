@@ -1,0 +1,207 @@
+
+class std+, vector<T> {
+
+    import rt::c;
+
+    struct vector {
+        ptr void;
+        page size_t;
+        capacity size_t;
+        used size_t;
+    }
+
+    func constructor() {
+        this.ptr = null;
+        this.page = sizeof(T, 32);
+        this.capacity = 0;
+        this.used = 0;
+    }
+
+    func destructor() {
+        this->clear(true);
+    }
+
+    inline size() size_t {
+        return this.used;
+    }
+
+    inline resize(count size_t) {
+        if count {
+            this->adjust_size(this.used = sizeof(T, count));
+        else
+            this.used = 0;
+        }
+    }
+
+    inline count() size_t {
+        return this.used / sizeof(T);
+    }
+
+    inline capacity() size_t {
+        return this.capacity;
+    }
+
+    inline empty() bool {
+        return !this.used;
+    }
+
+    inline reserve(count size_t) {
+        if count;
+            this->adjust_size(sizeof(T, count));
+    }
+
+    func shrink_to_fit() {
+        // ...
+    }
+
+    inline at(pos size_t) .T {
+        var offset size_t = sizeof(T, pos);
+        if offset < this.used;
+            return this.ptr + offset;
+        return null;
+    }
+
+    inline front() .T {
+        if this.used;
+            return this.ptr;
+        return null;
+    }
+
+    inline back() .T {
+        if this.used;
+            return this.ptr + this.used - sizeof(T);
+        return null;
+    }
+
+    inline data() .T {
+        return this.ptr;
+    }
+
+    inline alloc() .T {
+        var used size_t = this.used;
+        this->adjust_size(this.used += sizeof(T));
+        return this.ptr + used;
+    }
+
+    inline new() .T {
+        func = this->alloc();
+        #if objectid(T).is_class;
+            #if objectid(T).func.constructor;
+                func->constructor();
+            #endif
+        #elseif objectid(T).is_struct;
+            constructor(func);
+        #endif
+    }
+
+    inline push_back(value T) {
+        .this->alloc() = value;
+    }
+
+    inline push_back_ref(value. T) {
+        .this->alloc() = .value;
+    }
+
+    func pop_back(count size_t = 1) {
+        var size size_t = sizeof(T, count);
+        #if objectid(T).is_struct;
+            if this.used <= size {
+                this->clear();
+            else
+                for ; count; count-- {
+                    var t. T = this.ptr + (this.used -= sizeof(T));
+                    #if objectid(T).is_class;
+                        #if objectid(T).func.destructor;
+                            t->destructor();
+                        #endif
+                    #elseif objectid(T).is_struct;
+                        destructor(t);
+                    #endif
+                }
+            }
+        #else
+            if this.used <= size {
+                this.used = 0;
+            else
+                this.used -= size;
+            }
+        #endif
+    }
+
+    func insert(pos size_t, value T) {
+        // ...
+    }
+
+    func insert_ref(pos size_t, value. T) {
+        // ...
+    }
+
+    func erase(pos size_t) bool {
+        var count size_t = this->count();
+        if !count or count <= pos;
+            return false;
+        if (count - 1) == pos {
+            this->pop_back();
+        else
+            var offset size_t = pos * sizeof(T);
+            var move size_t = offset + sizeof(T);
+            var t. T = this.ptr + offset;
+            #if objectid(T).is_class;
+                #if objectid(T).func.destructor;
+                    t->destructor();
+                #endif
+            #elseif objectid(T).is_struct;
+                destructor(t);
+            #endif
+            memmove(t, this.ptr + move, this.used - move);
+            this.used -= sizeof(T);
+        }
+        return true;
+    }
+
+    func erases(start size_t, end size_t) bool {
+        // ...
+    }
+
+    inline swap(other. vector) {
+        var tmp $vector = .this;
+        .this = .other;
+        .other = tmp;
+    }
+
+    func clear(free_mem bool = false) {
+        #if objectid(T).is_class;
+            #if objectid(T).func.destructor;
+                forvar count size_t = this->count(); count;;
+                    this->at(--count)->destructor();
+            #endif
+        #elseif objectid(T).is_struct;
+            forvar count size_t = this->count(); count;;
+                destructor(this->at(--count));
+        #endif
+        this.used = 0;
+        if free_mem {
+            if this.ptr ~= null {
+                free(this.ptr);
+                this.ptr = null;
+                this.capacity = 0;
+            }
+        }
+    }
+
+    private func adjust_size(size size_t) {
+        var capacity size_t = this.capacity;
+        if !capacity;
+            capacity = this.page;
+        while capacity < size {
+            if capacity & 0x80000000 {
+                printf("vector: out of memory\n");
+                exit(1);
+            }
+            capacity <<= 1;
+        }
+        if capacity ~= this.capacity;
+            this.ptr = realloc(this.ptr, this.capacity = capacity);
+    }
+
+}

@@ -1,0 +1,145 @@
+
+/*
+    FIXME
+*/
+
+class app_list+ {
+
+    private import rt::c;
+
+    private alias
+        string = std::string,
+        vector = std::vector;
+
+    struct app {
+        slot int;
+        type int;
+        title string;
+        cmd string;
+        icon string;
+        extra string;
+    }
+
+    struct app_list {
+        db database;
+        apps vector<app>;
+    }
+
+    func constructor() {
+        constructor(this); }
+    func destructor() {
+        destructor(this); }
+
+    func init(filename. char) bool {
+        if !this.db->open(filename);
+            return false;
+        this.db->exec(
+            "
+                CREATE TABLE IF NOT EXISTS apps (
+                    slot INTEGER PRIMARY KEY,
+                    type INTEGER NOT NULL,
+                    title TEXT NOT NULL,
+                    command TEXT NOT NULL,
+                    icon TEXT,
+                    extra TEXT
+                );
+            "
+        );
+        var stmt database::stmt;
+        if !this.db->prepare(&stmt, "SELECT * FROM apps");
+            return false;
+        while stmt->step() {
+            var app. app = this.apps->new();
+            app.slot = stmt->column_int(0);
+            app.type = stmt->column_int(1);
+            app.title->set(stmt->column_text(2));
+            app.cmd->set(stmt->column_text(3));
+            app.icon->set(stmt->column_text(4));
+            app.extra->set(stmt->column_text(5));
+        }
+        return true;
+    }
+
+    func for_each(begin int, end int, callback void, arg void) {
+        forvar i size_t = 0, c size_t = this.apps->count(); i < c; i++ {
+            var app. app = this.apps->at(i);
+            if app.slot >= begin and app.slot <= end {
+                proto fn(app void, arg void);
+                fn[callback](app, arg);
+            }
+        }
+    }
+
+    func get_app_from_vector(slot int) .app {
+        forvar index size_t = 0, count size_t = this.apps->count(); index < count; index++ {
+            var app. app = this.apps->at(index);
+            if app.slot == slot;
+                return app;
+        }
+        return null;
+    }
+
+    func remove_app_from_vector(slot int) bool {
+        forvar index size_t = 0, count size_t = this.apps->count(); index < count; index++ {
+            if this.apps->at(index).slot == slot;
+                return this.apps->erase(index);
+        }
+        return false;
+    }
+
+    func insert(slot int, type int, title. char, cmd. char, icon. char = null, extra. char = null) .app {
+        if !this.db->execf("INSERT INTO apps (slot, type, title, command, icon, extra) VALUES (%d, %d, %Q, %Q, %Q, %Q)",
+            slot, type, title, cmd, icon, extra) {
+            return null;
+        }
+        func = this.apps->new();
+        func.slot = slot;
+        func.type = type;
+        func.title->set(title);
+        func.cmd->set(cmd);
+        func.icon->set(icon);
+        func.extra->set(extra);
+    }
+
+    func update(slot int, type int, title. char, cmd. char, icon. char = null, extra. char = null) .app {
+        if !this.db->execf("UPDATE apps SET type=%d, title=%Q, command=%Q, icon=%Q, extra=%Q WHERE slot=%d",
+            type, title, cmd, icon, extra, slot) {
+            return null;
+        }
+        /*
+            fixme
+        */
+        if (func = this->get_app_from_vector(slot)) == null;
+            return;
+        func.type = type;
+        func.title->set(title);
+        func.cmd->set(cmd);
+        func.icon->set(icon);
+        func.extra->set(extra);
+    }
+
+    func remove(slot int) bool {
+        this->remove_app_from_vector(slot);
+        /*
+            fixme
+        */
+        return this.db->execf("DELETE FROM apps WHERE slot=%d", slot);
+    }
+
+    func move(from int, to int) bool {
+        this->remove(to);
+        if !this.db->execf("UPDATE apps SET slot=%d WHERE slot=%d", to, from) {
+            /*
+                fixme
+            */
+            return false;
+        }
+        using app. app = this->get_app_from_vector(from) {
+            if app ~= null {
+                app.slot = to;
+            }
+        }
+        return true;
+    }
+
+}

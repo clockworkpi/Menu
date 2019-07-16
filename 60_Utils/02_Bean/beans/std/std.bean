@@ -1,0 +1,8 @@
+
+module std+ {
+
+    func init() {
+        uri::urlencode_init();
+    }
+
+}

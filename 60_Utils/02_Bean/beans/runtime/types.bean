@@ -1,0 +1,21 @@
+
+typedef uchar unsigned char;
+typedef ushort unsigned short;
+typedef uint unsigned int;
+typedef ulong unsigned long;
+typedef ull unsigned dlong;
+typedef uint8 unsigned int8;
+typedef uint16 unsigned int16;
+typedef uint32 unsigned int32;
+typedef uint64 unsigned int64;
+typedef uintptr unsigned intptr;
+typedef uword unsigned word;
+typedef byte uchar;
+typedef void uintptr;
+typedef bool int;
+
+define {
+    null = void(0);
+    false = bool(0);
+    true = bool(1);
+}

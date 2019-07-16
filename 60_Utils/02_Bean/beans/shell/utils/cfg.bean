@@ -1,0 +1,221 @@
+
+class cfg {
+
+    private import rt::c;
+
+    private alias
+        vector = std::vector,
+        string = std::string;
+
+    struct item {
+        name string;
+        value string;
+        cover char;
+    }
+
+    struct cfg {
+        items vector<item>;
+        filename string;
+    }
+
+    func constructor() {
+        constructor(this);
+    }
+
+    func destructor() {
+        destructor(this);
+    }
+
+    func open(filename. char) bool {
+        define {
+            SIZE_LIMIT = 0x1000000;
+        }
+        lambda read(filename. char, file_size& size_t) void [
+            var stream void = fopen(filename, "rb");
+            if stream == null;
+                return null;
+            defer fclose(stream);
+            if fseek(stream, 0, SEEK_END) < 0;
+                return null;
+            var tail long = ftell(stream);
+            if tail < 0 or tail > SIZE_LIMIT;
+                return null;
+            rewind(stream);
+            func = malloc(tail);
+            var offset size_t = 0;
+            var remain size_t = tail;
+            while remain {
+                var size size_t = fread(func + offset, 1, remain, stream);
+                if ferror(stream) {
+                    free(func);
+                    return null;
+                }
+                offset += size;
+                remain -= size;
+            }
+            file_size = offset;
+        ];
+        var size size_t;
+        var buf. char = read(filename, size);
+        if buf == null;
+            return false;
+        defer free(buf);
+        this.items->clear();
+        this.filename->clear();
+        lambda skip_space(buf. char, index& size_t, size size_t) bool [
+            for ; index < size; index++ {
+                if !isspace(buf[index]) {
+                    return true;
+                }
+            }
+            return false;
+        ];
+        lambda skip_line(buf. char, index& size_t, size size_t, end& size_t) bool [
+            for ; index < size; index++ {
+                var c char = buf[index];
+                if c == '\r' {
+                    end = index;
+                    if ++index < size {
+                        if buf[index] == '\n' {
+                            index++;
+                            return true;
+                        }
+                    else
+                        return false;
+                    }
+                elseif c == '\n';
+                    end = index++;
+                    return true;
+                }
+            }
+            end = index;
+            return false;
+        ];
+        lambda skip_name(buf. char, index& size_t, size size_t) bool [
+            for ; index < size; index++ {
+                var c char = buf[index];
+                if c == ' ' or c == '\t' or c == '\r' or c == '\n' or c == '=' {
+                    return true;
+                }
+            }
+            return false;
+        ];
+        lambda skip_until(buf. char, index& size_t, size size_t, end char) bool [
+            for ; index < size; index++ {
+                if buf[index] == end {
+                    return true;
+                }
+            }
+            return false;
+        ];
+        forvar index size_t = 0 ;; {
+            if !skip_space(buf, index, size);
+                break;
+            var name_offset size_t = index;
+            if !skip_name(buf, index, size);
+                break;
+            var name_size size_t = index - name_offset;
+            if !name_size;
+                return false;
+            if buf[index] ~= '=' {
+                if !skip_space(buf, ++index, size);
+                    break;
+                if buf[index] ~= '=';
+                    return false;
+            }
+            if !skip_space(buf, ++index, size);
+                break;
+            var value_offset size_t;
+            var value_size size_t;
+            var cover char;
+            if  buf[index] == '\'' or
+                buf[index] == '\"' {
+                cover = buf[index];
+                value_offset = ++index;
+                if !skip_until(buf, index, size, cover);
+                    break;
+                value_size = index++ - value_offset;
+            else
+                value_offset = index;
+                var end size_t;
+                skip_line(buf, index, size, end);
+                value_size = end - value_offset;
+                cover = 0;
+            }
+            var item. item = this.items->new();
+            item.name->set(buf + name_offset, name_size);
+            if value_size;
+                item.value->set(buf + value_offset, value_size);
+            item.cover = cover;
+        }
+        this.filename->set(filename);
+        return true;
+    }
+
+    func save(filename. char = null) bool {
+        var stream void;
+        if filename == null {
+            if this.filename->empty();
+                return false;
+            stream = fopen(this.filename->ptr(), "w");
+        else
+            stream = fopen(filename, "w");
+        }
+        if stream == null;
+            return false;
+        forvar index size_t = 0, count size_t = this.items->count(); index < count; index++ {
+            var item. item = this.items->at(index);
+            if item.cover {
+                fprintf("%s = %c%s%c\n",
+                    item.name->ptr(),
+                    item.cover,
+                    item.value->ptr(),
+                    item.cover);
+            else
+                fprintf("%s = %s\n",
+                    item.name->ptr(),
+                    item.value->ptr());
+            }
+        }
+        fclose(stream);
+    }
+
+    func find(name. char) .item {
+        var count size_t = this.items->count();
+        while count {
+            var item. item = this.items->at(--count);
+            if !strcasecmp(item.name->ptr(), name) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    func get(name. char) .char {
+        var item. item = this->find(name);
+        if item == null;
+            return null;
+        return item.value->ptr();
+    }
+
+    func set(name. char, value. char) bool {
+        var item. item = this->find(name);
+        if item == null;
+            return false;
+        item.value->set(value);
+        return true;
+    }
+
+    func add(name. char, value. char = null, cover char = '"') bool {
+        var item. item = this->find(name);
+        if item ~= null;
+            return false;
+        item = this.items->new();
+        item.name->set(name);
+        if value ~= null;
+            item.value->set(value);
+        item.cover = cover;
+        return true;
+    }
+
+}
