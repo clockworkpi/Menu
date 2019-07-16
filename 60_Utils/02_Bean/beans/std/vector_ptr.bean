@@ -1,0 +1,25 @@
+
+class std+, vector_ptr<T> {
+
+    inherit vector<void> = super;
+
+    struct vector_ptr;
+
+    func constructor() {
+        constructor(this); }
+    func destructor() {
+        destructor(this); }
+
+    inline at(pos size_t) .T {
+        return .this.super->at(pos);
+    }
+
+    inline front() .T {
+        return .this.super->front();
+    }
+
+    inline back() .T {
+        return .this.super->back();
+    }
+
+}

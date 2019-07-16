@@ -1,0 +1,117 @@
+
+func exec(file. char, ap void) bool {
+    import rt::c;
+    var pid pid_t = fork();
+    if pid == -1 {
+        return false;
+    elseif pid == 0;
+        execvp(file, ap);
+        return false;
+    else
+        wait(null);
+        /*
+            for some reasons.
+        */
+        sleep(1);
+    }
+    return true;
+}
+
+func exec2(cmd. char) bool {
+    import rt::c;
+    alias
+        dmem = std::dmem,
+        strings = std::strings;
+    var args dmem;
+    var strs strings;
+    enum {
+        mode_none,
+        mode_word,
+        mode_quote,
+        mode_double_quote
+    }
+    var mode int = mode_none;
+    var begin size_t;
+    forvar index size_t = 0, count size_t = strlen(cmd); index < count; index++ {
+        var c char = cmd[index];
+        if c == ' ' or c == '\t' {
+            if mode == mode_word {
+                .args->alloc_t<char*>() =
+                    strs->add(cmd + begin, index - begin);
+                mode = mode_none;
+            }
+        elseif c == '\'';
+            if mode == mode_none {
+                begin = index + 1;
+                mode = mode_quote;
+            elseif mode == mode_word;
+                // fixme
+                return false;
+            elseif mode == mode_quote;
+                .args->alloc_t<char*>() =
+                    strs->add(cmd + begin, index - begin);
+                mode = mode_none;
+            }
+        elseif c == '\"';
+            if mode == mode_none {
+                begin = index + 1;
+                mode = mode_double_quote;
+            elseif mode == mode_word;
+                // fixme
+                return false;
+            elseif mode == mode_double_quote;
+                .args->alloc_t<char*>() =
+                    strs->add(cmd + begin, index - begin);
+                mode = mode_none;
+            }
+        else
+            if mode == mode_none {
+                begin = index;
+                mode = mode_word;
+            }
+        }
+    }
+    if mode == mode_word {
+        .args->alloc_t<char*>() =
+            strs->add(cmd + begin);
+    }
+    if strs->empty() {
+        return false;
+    }
+    .args->alloc_t<char*>() = null;
+    return exec(strs->first_item(), args.ptr);
+}
+
+/*
+    fixme
+*/
+func exec3(window. game::window, text. char, cmd. char) bool {
+    import lib::sdl2, game;
+    define {
+        PADDING = 10;
+    }
+    var render void = window->get_render();
+    var font texture;
+    font->init(global::uni_font->create_tex(render, text, 0xff000000));
+    var width int = font->get_width();
+    var height int = font->get_height();
+    var rect SDL_Rect = 0;
+    window->get_size(&rect.w, &rect.h);
+    var sub_rect SDL_Rect;
+    sub_rect.x = (rect.w - width) / 2 - PADDING;
+    sub_rect.y = (rect.h - height) / 2 - PADDING;
+    sub_rect.w = width + (PADDING * 2);
+    sub_rect.h = height + (PADDING * 2);
+    var screen texture;
+    screen->init(window->screen_capture2());
+    screen->draw(render, 0, 0);
+    SDL_SetRenderDrawColor(render, 0xff, 0xff, 0xff, 0xff);
+    SDL_RenderFillRect(render, &sub_rect);
+    SDL_SetRenderDrawColor(render, 127, 127, 127, 0xff);
+    SDL_RenderDrawRect(render, &sub_rect);
+    font->draw(render,
+        sub_rect.x + PADDING,
+        sub_rect.y + PADDING);
+    window->present();
+    return exec2(cmd);
+}

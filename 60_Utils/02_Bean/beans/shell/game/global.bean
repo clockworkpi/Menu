@@ -1,0 +1,120 @@
+
+module game+, global {
+
+    private import rt::c, lib::sdl2;
+
+    private alias
+        string = std::string,
+        strings = std::strings;
+
+    var config cfg;
+
+    var skin_dir string;
+
+    var apps app_list;
+
+    var wifi wifi;
+
+    // deprecated
+    var outlined_font bool = false;
+
+    var uni_font font;
+
+    var small_font small_font;
+
+    //
+
+    func init(render void) bool {
+        if !config->open("bean.cfg");
+            return false;
+        if config->find("skin") == null;
+            config->add("skin", "default");
+        if config->find("font") == null;
+            config->add("font", "unifont-12.0.01.ttf");
+        // deprecated
+        using value. char = config->get("outlined_font") {
+            if value ~= null and !strcasecmp(value, "true") {
+                outlined_font = true;
+            }
+        }
+        skin_dir->format("skins/%s",
+            config->get("skin"));
+        if !apps->init("bean.db");
+            return false;
+        if !wifi->init();
+            return false;
+        var filename string;
+        if !uni_font->open(filename->format("fonts/%s", config->get("font")), 16);
+            return false;
+        small_font->init(render, 10, 12,
+            make_path("small_font_10x12.png"));
+        return true;
+    }
+
+    //
+
+    func make_path(filename. char) .char {
+        static path string;
+        return path->format("%s/%s",
+            skin_dir->ptr(), filename);
+    }
+
+    inline make_rect(x int, y int, width int, height int) SDL_Rect {
+        func.x = x,
+        func.y = y,
+        func.w = width,
+        func.h = height;
+    }
+
+    //
+
+    func get_backlight_level() byte {
+        func = -1;
+        var stream void = fopen(CPI_BACKLIGHT, "r");
+        if stream ~= null {
+            if fread(&func, 1, 1, stream) == 1;
+                func -= '0';
+            fclose(stream);
+        }
+    }
+
+    func set_backlight_level(level byte) bool {
+        var stream void = fopen(CPI_BACKLIGHT, "w");
+        if stream ~= null {
+            defer fclose(stream);
+            level += '0';
+            if fwrite(&level, 1, 1, stream) == 1;
+                return true;
+        }
+        return false;
+    }
+
+    func get_battery_cap() int {
+        var lines strings;
+        if lines->load_file(CPI_BATTERY) <= 0;
+            return -1;
+        var strs strings;
+        func = 0;
+        forvar index size_t = 0, count size_t = lines->count(); index < count; index++ {
+            var line. char = lines->item(index);
+            if strstr(line, "POWER_SUPPLY_STATUS=") ~= null {
+                if strs->split(line, "=") == 2 {
+                    if !strcasecmp(strs->item(1), "Charging");
+                        func = 0x100;
+                }
+                break;
+            }
+        }
+        forvar index size_t = 0, count size_t = lines->count(); index < count; index++ {
+            var line. char = lines->item(index);
+            if strstr(line, "POWER_SUPPLY_CAPACITY=") ~= null {
+                strs->clear();
+                if strs->split(line, "=") == 2;
+                    return func | atoi(strs->item(1));
+                break;
+            }
+        }
+        return -1;
+    }
+
+}

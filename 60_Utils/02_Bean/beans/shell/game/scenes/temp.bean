@@ -1,0 +1,40 @@
+
+// template
+
+class game+, scene+, temp {
+
+    inherit game::scene = super;
+
+    private import lib::sdl2;
+
+    struct temp {
+
+    }
+
+    func constructor() {
+        constructor(this);
+    }
+    
+    func destructor() {
+        destructor(this);
+    }
+
+    func init(render void) bool {
+        return true;
+    }
+
+    func update(render void) {
+        this.super->update(render);
+    }
+
+    func draw(render void) {
+        SDL_SetRenderDrawColor(render, 0, 0, 0, 0xff);
+        SDL_RenderClear(render);
+        this.super->draw(render);
+    }
+
+    func wake() {
+        this.super->wake();
+    }
+
+}

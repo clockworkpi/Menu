@@ -1,0 +1,73 @@
+
+// 2.0.4.0
+
+module lib+ {
+
+    module sdl2_image+ {
+
+        module so {
+
+            struct struct {
+                IMG_Init void;
+                IMG_Quit void;
+                IMG_Load void;
+                IMG_LoadTexture void;
+                IMG_SavePNG void;
+            }
+
+            var fn struct;
+
+            func init() bool {
+                import rt::c;
+                return dlsyms(dlopen("libSDL2_image-2.0.so.0", RTLD_LAZY), &fn,
+                    "IMG_Init",
+                    "IMG_Quit",
+                    "IMG_Load",
+                    "IMG_LoadTexture",
+                    "IMG_SavePNG"
+                );
+            }
+
+        }
+
+    }
+
+    module sdl2_image+ {
+
+        import sdl2;
+        
+        enum IMG_InitFlags;
+        enum {
+            IMG_INIT_JPG = 0x00000001,
+            IMG_INIT_PNG = 0x00000002,
+            IMG_INIT_TIF = 0x00000004,
+            IMG_INIT_WEBP = 0x00000008
+        }
+
+    }
+
+    module sdl2_image+ {
+
+        inline IMG_Init(flags int) int {
+            return call1<int>(so::fn.IMG_Init, flags);
+        }
+
+        inline IMG_Quit() {
+            call<void>(so::fn.IMG_Quit);
+        }
+
+        inline IMG_Load(file. char) .SDL_Surface {
+            return call1<void>(so::fn.IMG_Load, file);
+        }
+
+        inline IMG_LoadTexture(renderer+ SDL_Renderer, file. char) +SDL_Texture {
+            return call2<void>(so::fn.IMG_LoadTexture, renderer, file);
+        }
+
+        inline IMG_SavePNG(surface. SDL_Surface, file. char) int {
+            return call2<int>(so::fn.IMG_SavePNG, surface, file);
+        }
+
+    }
+
+}

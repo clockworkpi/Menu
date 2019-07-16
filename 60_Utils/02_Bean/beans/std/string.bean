@@ -1,0 +1,222 @@
+
+class std+, string {
+
+    private import rt::c;
+
+    struct string {
+        super dmem;
+    }
+
+    func constructor() {
+        constructor(this);
+        .this.super->reserve_t<char>() = 0;
+    }
+
+    func destructor() {
+        destructor(this);
+    }
+
+    inline ptr(offset size_t = 0) .char {
+        return this.super.ptr + offset;
+    }
+
+    inline len() size_t {
+        return this.super.used;
+    }
+
+    inline empty() bool {
+        return this.super.used == 0;
+    }
+
+    inline alloc(size size_t) .char {
+        return memset(this.super->alloc(size), 0, size);
+    }
+
+    func nul() .char {
+        func = this.super.ptr;
+        forvar i size_t = 0, c size_t = this.super.used; i < c; i++ {
+            if !func[i] {
+                this.super.used = i;
+                break;
+            }
+        }
+    }
+
+    func clear() {
+        this.super.used = 0;
+        .this.super->reserve_t<char>() = 0;
+    }
+
+    func set(str. char, len size_t = 0) .char {
+        this.super.used = 0;
+        if str == null {
+            .this.super->reserve_t<char>() = 0;
+            return this.super.ptr;
+        }
+        return this->append(str, len);
+    }
+
+    func format(format. char, ...) .char {
+        this.super.used = 0;
+        return this->appendvf(format, va_start(this));
+    }
+
+    func append(str. char, len size_t = 0) .char {
+        if !len;
+            len = strlen(str);
+        if len;
+            this.super->write(str, len);
+        .this.super->reserve_t<char>() = 0;
+        return this.super.ptr;
+    }
+
+    func append_at(offset size_t, str. char, len size_t = 0) .char {
+        if !len;
+            len = strlen(str);
+        if len {
+            if !this.super->write_at(offset, str, len);
+                return null;
+        }
+        .this.super->reserve_t<char>() = 0;
+        return this.super.ptr;
+    }
+
+    func appendf(format. char, ...) .char {
+        return this->appendvf(format, va_start(this));
+    }
+
+    func appendvf(format. char, ap void) .char {
+        var len int = vsnprintf(null, 0, format, ap);
+        if len > -1 {
+            vsnprintf(this.super->alloc(++len), len, format, ap);
+            this.super.used--;
+            return this.super.ptr;
+        }
+        return null;
+    }
+
+    func appendc(c char, len uint = 1) .char {
+        for ; len; len--;
+            .this.super->alloc_t<char>() = c;
+        .this.super->reserve_t<char>() = 0;
+        return this.super.ptr;
+    }
+
+    func append_rnd(format. char, len uint) .char {
+        var range size_t = strlen(format);
+        if !range;
+            return null;
+        for ; len; len-- {
+            var spec char = format[random<int>(range)];
+            if spec == 'd' {
+                .this.super->alloc_t<char>() = random2<char>('0', '9');
+            elseif spec == 'c';
+                .this.super->alloc_t<char>() = random2<char>('a', 'z');
+            elseif spec == 'C';
+                .this.super->alloc_t<char>() = random2<char>('A', 'Z');
+            }
+        }
+        .this.super->reserve_t<char>() = 0;
+        return this.super.ptr;
+    }
+
+    func append_hex(buf. byte, len size_t, upper bool = false, reverse bool = false) .char {
+        var format. char;
+        if upper {
+            format = "%02X";
+        else
+            format = "%02x";
+        }
+        if reverse {
+            while len;
+                this->appendf(format, buf[--len]);
+        else
+            forvar i size_t = 0; i < len; i++;
+                this->appendf(format, buf[i]);
+        }
+        return this.super.ptr;
+    }
+
+    func insert(offset size_t, str. char) .char {
+        if this.super->write_at(offset, str, strlen(str)) == null;
+            return null;
+        .this.super->reserve_t<char>() = 0;
+        return this.super.ptr;
+    }
+
+    inline starts_with(c char) bool {
+        var s. char = this.super.ptr;
+        return .s == c;
+    }
+
+    inline ends_with(c char) bool {
+        if !this.super.used;
+            return false;
+        var s. char = this.super.ptr + (this.super.used - 1);
+        return .s == c;
+    }
+
+    func ltrim() .char {
+        var s. char = this.super.ptr;
+        while isspace(.s);
+            s += 1;
+        return this->set(s);
+    }
+
+    func rtrim() .char {
+        var s. char = this.super.ptr;
+        while this.super.used {
+            if !isspace(s[this.super.used - 1]);
+                break;
+            this.super.used--;
+        }
+        .this.super->reserve_t<char>() = 0;
+        return this.super.ptr;
+    }
+
+    func trim() .char {
+        this->ltrim();
+        return this->rtrim();
+    }
+
+    func between(str. char, left. char, right. char) .char {
+        var first. char = strstr(str, left);
+        if first ~= null {
+            var last. char = strstr(first += strlen(left), right);
+            if last ~= null;
+                return this->set(first, last - first);
+        }
+        return null;
+    }
+
+    func replace(str. char, sub_str. char, new. char = null) .char {
+        var sub_str_len size_t = strlen(sub_str);
+        var new_len size_t = strlen(new);
+        var tmp string;
+        var found. char;
+        while (found = strstr(str, sub_str)) ~= null {
+            if found ~= str;
+                tmp->append(str, found - str);
+            if new_len;
+                tmp->append(new, new_len);
+            str = found + sub_str_len;
+        }
+        tmp->append(str);
+        return this->set(tmp->ptr(), tmp->len());
+    }
+
+    inline remove(offset size_t, size size_t) bool {
+        if this.super->remove(offset, size);
+            .this.super->reserve_t<char>() = 0;
+    }
+
+    func remove_back(len size_t = 1) {
+        if this.super.used < len {
+            this.super.used = 0;
+        else
+            this.super.used -= len;
+        }
+        .this.super->reserve_t<char>() = 0;
+    }
+
+}

@@ -1,0 +1,25 @@
+
+class game+, launcher {
+
+    private import lib::sdl2;
+
+    struct launcher {
+        wnd window;
+    }
+
+    func constructor() {
+        constructor(this); }
+    func destructor() {
+        destructor(this); }
+ 
+    func start(title. char) bool {
+        if !this.wnd->create_wnd(title, CPI_WIDTH, CPI_HEIGHT);
+            return false;
+        if !global::init(this.wnd->get_render());
+            return false;
+        this.wnd->set_new_scene<scene::intro>();
+        this.wnd->game_loop();
+        return true;
+    }
+
+}

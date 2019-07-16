@@ -1,0 +1,79 @@
+
+class game+, small_font {
+
+    private import rt::c, lib::sdl2;
+
+    struct small_font {
+        textures(13) texture;
+        font_width int;
+        font_height int;
+    }
+
+    func constructor() {
+        constructor(this);
+        this.font_width = 0;
+        this.font_height = 0;
+    }
+
+    func destructor() {
+        destructor(this);
+    }
+
+    func init(render void, font_width int, font_height int, filename. char) bool {
+        var tex texture;
+        if !tex->load_file(render, filename);
+            return false;
+        if tex->get_width() ~= (font_width * 13) or tex->get_height() ~= font_height;
+            return false;
+        forvar i int = 0; i < 13; i++;
+            this.textures[i]->init(tex->clone_tex(render, i * font_width, 0, font_width, font_height, SDL_BLENDMODE_BLEND));
+        this.font_width = font_width;
+        this.font_height = font_height;
+        return true;
+    }
+
+    func draw_cap(render void, x int, y int, cap uint) {
+        var str(8) char;
+        forvar index int = 0, count int = snprintf(&str, 8, "%u", cap); index < count; index++ {
+            this.textures[str[index] - '0']->draw(render, x, y);
+            x += this.font_width;
+        }
+        this.textures[10]->draw(render, x, y);
+    }
+
+    func draw_time(render void, x int, y int, t time_t, draw_colon bool = true) {
+        var tm. struct_tm = localtime(&t);
+        if !tm.tm_hour {
+            tm.tm_hour = 12;
+        elseif tm.tm_hour > 12;
+            tm.tm_hour -= 12;
+        }
+        var str(8) char;
+        forvar index int = 0, count int =
+            sprintf(&str, "%u:%02u",
+                tm.tm_hour,
+                tm.tm_min); index < count; index++ {
+            var c char = str[index];
+            if isdigit(c) {
+                this.textures[c - '0']->draw(render, x, y);
+            elseif draw_colon;
+                this.textures[11]->draw(render, x, y);
+            }
+            x += this.font_width;
+        }
+    }
+
+    func draw_page(render void, x int, y int, cur uint, last uint) {
+        var str(16) char;
+        forvar index int = 0, count int = snprintf(&str, 16, "%u/%u", cur, last); index < count; index++ {
+            var c char = str[index];
+            if isdigit(c) {
+                this.textures[c - '0']->draw(render, x, y);
+            else
+                this.textures[12]->draw(render, x, y);
+            }
+            x += this.font_width;
+        }
+    }
+
+}

@@ -1,0 +1,17 @@
+
+/*
+    powered by bean 0.382 r388
+*/
+
+module app+ {
+
+    func main() {
+        var launcher game::launcher;
+        launcher->start("BeanShell");
+    }
+
+}
+
+func main() {
+    app::main();
+}
