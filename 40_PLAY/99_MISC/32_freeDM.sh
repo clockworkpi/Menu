@@ -1,1 +1,1 @@
-chocolate-doom -iwad /home/cpi/games/FreeDM/freedoom1.wad
+chocolate-doom -iwad /home/cpi/games/ChocoDM/freedoom1.wad
